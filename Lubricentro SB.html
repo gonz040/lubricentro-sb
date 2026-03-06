@@ -1,0 +1,798 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<title>Lubricentro SB</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@300;400;500;600&family=DM+Mono:wght@400;500&display=swap');
+
+  :root {
+    --bg: #0f0f0f; --surface: #1a1a1a; --surface2: #222; --surface3: #2e2e2e;
+    --accent: #e8531a; --accent2: #ff7a45; --text: #f0ece6; --text2: #9a9490;
+    --text3: #5a5652; --border: #2a2a2a; --green: #4caf74; --yellow: #f5c842;
+    --red: #e84545; --blue: #4a90d9; --radius: 12px; --nav-h: 64px; --top-h: 56px;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+  html, body { height: 100%; overflow: hidden; font-family: 'DM Sans', sans-serif; background: var(--bg); color: var(--text); }
+  #app { display: flex; flex-direction: column; height: 100%; height: 100dvh; }
+
+  /* TOPBAR */
+  #topbar {
+    height: var(--top-h); background: var(--surface); border-bottom: 1px solid var(--border);
+    display: flex; align-items: center; justify-content: space-between; padding: 0 16px;
+    flex-shrink: 0; z-index: 10;
+  }
+  .top-logo { font-family: 'Bebas Neue', sans-serif; font-size: 20px; letter-spacing: 2px; color: var(--accent); line-height: 1; }
+  .top-page { font-size: 10px; letter-spacing: 2px; text-transform: uppercase; color: var(--text3); margin-top: 1px; }
+
+  /* SYNC INDICATOR */
+  .sync-btn {
+    background: none; border: 1px solid var(--border); border-radius: 20px;
+    color: var(--text3); font-size: 11px; padding: 5px 10px; cursor: pointer;
+    display: flex; align-items: center; gap: 5px; font-family: 'DM Sans', sans-serif;
+    transition: all 0.2s; min-height: 32px;
+  }
+  .sync-btn:active { background: var(--surface2); }
+  .sync-btn.syncing { color: var(--yellow); border-color: var(--yellow); }
+  .sync-btn.ok { color: var(--green); border-color: var(--green); }
+  .sync-btn.error { color: var(--red); border-color: var(--red); }
+  .sync-dot { width: 6px; height: 6px; border-radius: 50%; background: currentColor; }
+  .sync-dot.spin { animation: spin 1s linear infinite; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  /* CONTENT */
+  #content { flex: 1; overflow-y: auto; -webkit-overflow-scrolling: touch; padding: 14px; padding-bottom: calc(var(--nav-h) + 20px); }
+
+  /* BOTTOM NAV */
+  #bottom-nav {
+    height: var(--nav-h); background: var(--surface); border-top: 1px solid var(--border);
+    display: flex; align-items: stretch; flex-shrink: 0; padding-bottom: env(safe-area-inset-bottom);
+  }
+  .nav-tab {
+    flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center;
+    gap: 3px; cursor: pointer; border: none; background: none; color: var(--text3);
+    position: relative; padding: 8px 2px; transition: color 0.15s;
+  }
+  .nav-tab.active { color: var(--accent); }
+  .nav-tab.active::before {
+    content: ''; position: absolute; top: 0; left: 15%; right: 15%;
+    height: 2px; background: var(--accent); border-radius: 0 0 3px 3px;
+  }
+  .nav-tab-icon { font-size: 20px; line-height: 1; }
+  .nav-tab-label { font-size: 9px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.3px; }
+
+  /* BUTTONS */
+  .btn {
+    padding: 10px 18px; border-radius: var(--radius); border: none; cursor: pointer;
+    font-family: 'DM Sans', sans-serif; font-size: 14px; font-weight: 600; transition: all 0.1s;
+    display: inline-flex; align-items: center; justify-content: center; gap: 6px; min-height: 44px;
+  }
+  .btn-primary { background: var(--accent); color: white; }
+  .btn-primary:active { transform: scale(0.97); background: var(--accent2); }
+  .btn-ghost { background: var(--surface2); color: var(--text2); border: 1px solid var(--border); }
+  .btn-ghost:active { background: var(--surface3); }
+  .btn-danger { background: rgba(232,69,69,0.12); color: var(--red); border: 1px solid rgba(232,69,69,0.25); }
+  .btn-sm { padding: 8px 12px; font-size: 12px; min-height: 38px; }
+
+  /* FAB */
+  .fab {
+    position: fixed; bottom: calc(var(--nav-h) + 14px); right: 16px;
+    width: 54px; height: 54px; border-radius: 50%; background: var(--accent); color: white;
+    font-size: 26px; border: none; cursor: pointer; display: flex; align-items: center;
+    justify-content: center; box-shadow: 0 4px 20px rgba(232,83,26,0.45); z-index: 50; transition: transform 0.1s;
+  }
+  .fab:active { transform: scale(0.92); }
+
+  /* CARDS */
+  .card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 14px; margin-bottom: 10px; position: relative; overflow: hidden; }
+  .card-accent { position: absolute; left: 0; top: 0; bottom: 0; width: 3px; border-radius: 2px 0 0 2px; }
+  .card-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 8px; }
+  .card-title { font-weight: 600; font-size: 15px; color: var(--text); line-height: 1.3; }
+  .card-sub { font-size: 12px; color: var(--text3); margin-top: 2px; }
+  .card-row { display: flex; align-items: center; gap: 6px; font-size: 13px; color: var(--text2); margin-top: 5px; }
+  .card-actions { display: flex; gap: 8px; margin-top: 12px; padding-top: 10px; border-top: 1px solid var(--border); }
+
+  /* STATS */
+  .stats-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 18px; }
+  .stat-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 14px; position: relative; overflow: hidden; }
+  .stat-card::after { content: ''; position: absolute; top: 0; left: 0; right: 0; height: 2px; background: var(--card-color, var(--accent)); }
+  .stat-label { font-size: 9px; letter-spacing: 2px; text-transform: uppercase; color: var(--text3); font-weight: 600; margin-bottom: 5px; }
+  .stat-value { font-family: 'Bebas Neue', sans-serif; font-size: 30px; color: var(--text); line-height: 1; letter-spacing: 1px; }
+  .stat-sub { font-size: 10px; color: var(--text3); margin-top: 3px; }
+
+  /* SECTION */
+  .section-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }
+  .section-title { font-family: 'Bebas Neue', sans-serif; font-size: 16px; letter-spacing: 2px; color: var(--text2); }
+
+  /* SEARCH */
+  .search-wrap { position: relative; margin-bottom: 12px; }
+  .search-wrap input {
+    width: 100%; padding: 11px 14px 11px 38px; background: var(--surface); border: 1px solid var(--border);
+    border-radius: var(--radius); color: var(--text); font-family: 'DM Sans', sans-serif;
+    font-size: 16px; outline: none; min-height: 46px; -webkit-appearance: none;
+  }
+  .search-wrap input:focus { border-color: var(--accent); }
+  .search-wrap input::placeholder { color: var(--text3); }
+  .search-icon { position: absolute; left: 12px; top: 50%; transform: translateY(-50%); pointer-events: none; }
+
+  /* FILTERS */
+  .filter-row { display: flex; gap: 7px; overflow-x: auto; padding-bottom: 4px; margin-bottom: 12px; scrollbar-width: none; }
+  .filter-row::-webkit-scrollbar { display: none; }
+  .filter-chip { flex-shrink: 0; padding: 7px 14px; border-radius: 20px; font-size: 12px; font-weight: 500; border: 1px solid var(--border); background: var(--surface); color: var(--text2); cursor: pointer; min-height: 36px; display: flex; align-items: center; }
+  .filter-chip.active { background: rgba(232,83,26,0.15); border-color: var(--accent); color: var(--accent); }
+
+  /* BADGE */
+  .badge { display: inline-flex; align-items: center; padding: 3px 9px; border-radius: 20px; font-size: 11px; font-weight: 500; white-space: nowrap; }
+  .badge-green { background: rgba(76,175,116,0.15); color: var(--green); }
+  .badge-yellow { background: rgba(245,200,66,0.15); color: var(--yellow); }
+  .badge-red { background: rgba(232,69,69,0.15); color: var(--red); }
+  .badge-blue { background: rgba(74,144,217,0.15); color: var(--blue); }
+  .badge-gray { background: var(--surface3); color: var(--text2); }
+
+  /* MODAL */
+  .modal-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.75); z-index: 200; align-items: flex-end; justify-content: center; backdrop-filter: blur(3px); }
+  .modal-overlay.open { display: flex; }
+  .modal { background: var(--surface); border-radius: 20px 20px 0 0; width: 100%; max-width: 600px; max-height: 92dvh; display: flex; flex-direction: column; animation: slideUp 0.25s cubic-bezier(0.34,1.2,0.64,1); }
+  @keyframes slideUp { from { transform: translateY(100%); } to { transform: translateY(0); } }
+  .modal-handle { width: 36px; height: 4px; background: var(--surface3); border-radius: 2px; margin: 10px auto 0; flex-shrink: 0; }
+  .modal-header { padding: 12px 18px; border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; flex-shrink: 0; }
+  .modal-title { font-family: 'Bebas Neue', sans-serif; font-size: 20px; letter-spacing: 2px; }
+  .modal-close { background: var(--surface2); border: none; color: var(--text2); font-size: 15px; cursor: pointer; width: 32px; height: 32px; border-radius: 50%; display: flex; align-items: center; justify-content: center; }
+  .modal-body { overflow-y: auto; -webkit-overflow-scrolling: touch; padding: 18px; flex: 1; }
+  .modal-footer { padding: 12px 18px; border-top: 1px solid var(--border); display: flex; gap: 10px; flex-shrink: 0; padding-bottom: calc(12px + env(safe-area-inset-bottom)); }
+  .modal-footer .btn { flex: 1; }
+
+  /* FORMS */
+  .form-group { margin-bottom: 14px; }
+  .form-label { display: block; font-size: 11px; letter-spacing: 1.5px; text-transform: uppercase; color: var(--text3); font-weight: 600; margin-bottom: 6px; }
+  .form-input, .form-select, .form-textarea {
+    background: var(--surface2); border: 1px solid var(--border); border-radius: var(--radius);
+    color: var(--text); font-family: 'DM Sans', sans-serif; font-size: 16px; padding: 11px 13px;
+    outline: none; width: 100%; min-height: 46px; -webkit-appearance: none; appearance: none; transition: border-color 0.15s;
+  }
+  .form-input:focus, .form-select:focus, .form-textarea:focus { border-color: var(--accent); }
+  .form-select {
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%235a5652' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");
+    background-repeat: no-repeat; background-position: right 13px center; padding-right: 36px;
+  }
+  .form-select option { background: #222; color: var(--text); }
+  .form-textarea { resize: vertical; min-height: 80px; font-size: 15px; }
+  .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+
+  /* PRESUPUESTO ITEMS */
+  .pitem { background: var(--surface2); border: 1px solid var(--border); border-radius: var(--radius); padding: 12px; margin-bottom: 8px; }
+  .pitem-row { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 8px; }
+  .pitem-del { background: none; border: none; color: var(--red); font-size: 18px; cursor: pointer; padding: 4px; line-height: 1; float: right; }
+  .presup-total-box { background: rgba(232,83,26,0.08); border: 1px solid rgba(232,83,26,0.2); border-radius: var(--radius); padding: 14px 16px; display: flex; justify-content: space-between; align-items: center; margin-top: 12px; }
+  .presup-total-label { font-size: 11px; letter-spacing: 2px; text-transform: uppercase; color: var(--text3); }
+  .presup-total-val { font-family: 'Bebas Neue', sans-serif; font-size: 28px; color: var(--accent); letter-spacing: 1px; }
+  .add-item-btn { background: none; border: 1px dashed var(--border); border-radius: var(--radius); color: var(--text3); padding: 11px; width: 100%; cursor: pointer; font-family: 'DM Sans', sans-serif; font-size: 13px; min-height: 44px; transition: all 0.15s; }
+  .add-item-btn:active { border-color: var(--accent); color: var(--accent); }
+
+  /* EMPTY / LOADING */
+  .empty-state { text-align: center; padding: 50px 20px; color: var(--text3); }
+  .empty-state .ei { font-size: 48px; margin-bottom: 10px; opacity: 0.5; }
+  .empty-state p { font-size: 14px; line-height: 1.6; }
+
+  .loading-screen { display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100%; gap: 16px; color: var(--text3); }
+  .loading-logo { font-family: 'Bebas Neue', sans-serif; font-size: 32px; letter-spacing: 3px; color: var(--accent); }
+  .loading-bar { width: 120px; height: 2px; background: var(--surface3); border-radius: 1px; overflow: hidden; }
+  .loading-bar-inner { height: 100%; background: var(--accent); animation: loadbar 1.5s ease-in-out infinite; }
+  @keyframes loadbar { 0%{width:0;margin-left:0} 50%{width:100%;margin-left:0} 100%{width:0;margin-left:100%} }
+
+  .mono { font-family: 'DM Mono', monospace; font-size: 12px; }
+
+  /* TOAST */
+  #toast {
+    position: fixed; bottom: calc(var(--nav-h) + 14px); left: 50%; transform: translateX(-50%);
+    background: var(--surface2); border: 1px solid var(--border); border-left: 3px solid var(--accent);
+    color: var(--text); padding: 11px 18px; border-radius: var(--radius); font-size: 13px;
+    z-index: 9999; display: none; white-space: nowrap; box-shadow: 0 8px 32px rgba(0,0,0,0.5);
+    animation: fadeUp 0.2s ease;
+  }
+  @keyframes fadeUp { from{opacity:0;transform:translateX(-50%) translateY(8px)} to{opacity:1;transform:translateX(-50%) translateY(0)} }
+
+  ::-webkit-scrollbar { width: 3px; }
+  ::-webkit-scrollbar-thumb { background: var(--surface3); border-radius: 2px; }
+
+  @media (min-width: 600px) {
+    .modal { border-radius: 16px; max-width: 520px; align-self: center; }
+    .modal-overlay { align-items: center; }
+  }
+</style>
+</head>
+<body>
+<div id="app">
+  <div id="topbar">
+    <div>
+      <div class="top-logo">Lubricentro SB</div>
+      <div class="top-page" id="top-page">Dashboard</div>
+    </div>
+    <button class="sync-btn" id="sync-btn" onclick="syncNow()">
+      <div class="sync-dot" id="sync-dot"></div>
+      <span id="sync-label">Sincronizar</span>
+    </button>
+  </div>
+
+  <div id="content">
+    <div class="loading-screen">
+      <div class="loading-logo">Lubricentro SB</div>
+      <div class="loading-bar"><div class="loading-bar-inner"></div></div>
+      <div style="font-size:12px">Cargando datos...</div>
+    </div>
+  </div>
+
+  <div id="bottom-nav">
+    <button class="nav-tab" onclick="showPage('dashboard')" data-page="dashboard">
+      <span class="nav-tab-icon">📊</span><span class="nav-tab-label">Inicio</span>
+    </button>
+    <button class="nav-tab" onclick="showPage('clientes')" data-page="clientes">
+      <span class="nav-tab-icon">👤</span><span class="nav-tab-label">Clientes</span>
+    </button>
+    <button class="nav-tab" onclick="showPage('vehiculos')" data-page="vehiculos">
+      <span class="nav-tab-icon">🚗</span><span class="nav-tab-label">Autos</span>
+    </button>
+    <button class="nav-tab" onclick="showPage('ordenes')" data-page="ordenes">
+      <span class="nav-tab-icon">🔧</span><span class="nav-tab-label">Órdenes</span>
+    </button>
+    <button class="nav-tab" onclick="showPage('presupuestos')" data-page="presupuestos">
+      <span class="nav-tab-icon">📄</span><span class="nav-tab-label">Presup.</span>
+    </button>
+  </div>
+</div>
+
+<div class="modal-overlay" id="modal-overlay">
+  <div class="modal">
+    <div class="modal-handle"></div>
+    <div class="modal-header">
+      <div class="modal-title" id="modal-title"></div>
+      <button class="modal-close" onclick="closeModal()">✕</button>
+    </div>
+    <div class="modal-body" id="modal-body"></div>
+    <div class="modal-footer" id="modal-footer"></div>
+  </div>
+</div>
+
+<div id="toast"></div>
+
+<script>
+// ============================================================
+// CONFIGURACIÓN — ACÁ CAMBIAR EL LINK DE GOOGLE APPS SCRIPT
+// ============================================================
+const CONFIG = {
+  SCRIPT_URL: 'https://script.google.com/macros/s/AKfycbwgu_JgNJRPCcWbpEEpttDzW0JrZNpR4fIoKTdg68H_XeB4ZjXPTB4QDHgS-JhOq1yA/exec'
+};
+// ============================================================
+
+// ===================== STORAGE LOCAL (caché offline) =====================
+const LOCAL = {
+  get(k) { try { return JSON.parse(localStorage.getItem('lb_'+k)||'null'); } catch { return null; } },
+  set(k, v) { localStorage.setItem('lb_'+k, JSON.stringify(v)); }
+};
+
+// Estado en memoria
+let DATA = { clientes: [], vehiculos: [], ordenes: [], presupuestos: [], nextId: { clientes:1, vehiculos:1, ordenes:1, presupuestos:1 } };
+
+// ===================== SYNC CON GOOGLE SHEETS =====================
+let syncTimeout = null;
+
+async function loadFromSheets() {
+  setSyncState('syncing', 'Cargando...');
+  try {
+    const res = await fetch(CONFIG.SCRIPT_URL + '?action=read');
+    const json = await res.json();
+    if (json.ok) {
+      DATA = json.data;
+      // Guardar copia local como caché
+      Object.keys(DATA).forEach(k => LOCAL.set(k, DATA[k]));
+      setSyncState('ok', 'Sincronizado');
+      return true;
+    } else {
+      throw new Error(json.error);
+    }
+  } catch (e) {
+    // Si falla, usar caché local
+    const cached = loadLocalCache();
+    if (cached) {
+      setSyncState('error', 'Sin conexión');
+      toast('⚠️ Sin conexión — usando datos locales');
+    } else {
+      setSyncState('error', 'Sin conexión');
+      toast('⚠️ Sin conexión — sin datos previos');
+    }
+    return false;
+  }
+}
+
+function loadLocalCache() {
+  const keys = ['clientes','vehiculos','ordenes','presupuestos','nextId'];
+  let found = false;
+  keys.forEach(k => {
+    const v = LOCAL.get(k);
+    if (v !== null) { DATA[k] = v; found = true; }
+  });
+  return found;
+}
+
+async function saveToSheets() {
+  setSyncState('syncing', 'Guardando...');
+  // Guardar siempre en local primero
+  Object.keys(DATA).forEach(k => LOCAL.set(k, DATA[k]));
+  try {
+    const res = await fetch(CONFIG.SCRIPT_URL + '?action=write&data=' + encodeURIComponent(JSON.stringify(DATA)));
+    const json = await res.json();
+    if (json.ok) {
+      setSyncState('ok', 'Guardado ✓');
+      setTimeout(() => setSyncState('idle', 'Sincronizar'), 3000);
+    } else {
+      throw new Error(json.error);
+    }
+  } catch(e) {
+    setSyncState('error', 'Sin conexión');
+    toast('⚠️ Sin internet — guardado localmente');
+  }
+}
+
+// Auto-guardar con debounce (espera 1.5s después del último cambio)
+function scheduleSave() {
+  clearTimeout(syncTimeout);
+  syncTimeout = setTimeout(saveToSheets, 1500);
+}
+
+async function syncNow() {
+  await loadFromSheets();
+  showPage(document.querySelector('.nav-tab.active')?.dataset.page || 'dashboard');
+}
+
+function setSyncState(state, label) {
+  const btn = document.getElementById('sync-btn');
+  const dot = document.getElementById('sync-dot');
+  const lbl = document.getElementById('sync-label');
+  btn.className = 'sync-btn ' + (state !== 'idle' ? state : '');
+  dot.className = 'sync-dot' + (state === 'syncing' ? ' spin' : '');
+  lbl.textContent = label;
+}
+
+// ===================== NEXT ID =====================
+function nextId(e) {
+  if (!DATA.nextId) DATA.nextId = { clientes:1, vehiculos:1, ordenes:1, presupuestos:1 };
+  const cur = DATA.nextId[e] || 1;
+  DATA.nextId[e] = cur + 1;
+  return cur;
+}
+
+// ===================== ROUTER =====================
+const pageNames = { dashboard:'Dashboard', clientes:'Clientes', vehiculos:'Vehículos', ordenes:'Órdenes de Trabajo', presupuestos:'Presupuestos' };
+
+function showPage(page) {
+  document.querySelectorAll('.nav-tab').forEach(t => t.classList.toggle('active', t.dataset.page===page));
+  document.getElementById('top-page').textContent = pageNames[page]||page;
+  document.getElementById('content').innerHTML = '';
+  document.querySelectorAll('.fab').forEach(f => f.remove());
+  ({dashboard:renderDashboard, clientes:renderClientes, vehiculos:renderVehiculos, ordenes:renderOrdenes, presupuestos:renderPresupuestos})[page]?.();
+}
+
+function addFab(onclick) {
+  const b = document.createElement('button');
+  b.className = 'fab'; b.innerHTML = '+'; b.setAttribute('onclick', onclick);
+  document.body.appendChild(b);
+}
+
+// ===================== TOAST =====================
+function toast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg; t.style.display = 'block';
+  clearTimeout(t._t); t._t = setTimeout(()=>t.style.display='none', 2800);
+}
+
+// ===================== MODAL =====================
+function openModal(title, body, footer) {
+  document.getElementById('modal-title').textContent = title;
+  document.getElementById('modal-body').innerHTML = body;
+  document.getElementById('modal-footer').innerHTML = footer;
+  document.getElementById('modal-overlay').classList.add('open');
+}
+function closeModal() { document.getElementById('modal-overlay').classList.remove('open'); }
+document.getElementById('modal-overlay').addEventListener('click', e => { if(e.target===document.getElementById('modal-overlay')) closeModal(); });
+
+// ===================== DASHBOARD =====================
+function renderDashboard() {
+  const cl=DATA.clientes, ve=DATA.vehiculos, or=DATA.ordenes, pr=DATA.presupuestos;
+  const cobrado = pr.filter(p=>p.estado==='pagado').reduce((s,p)=>s+p.items.reduce((si,i)=>si+i.qty*i.precio,0),0);
+  const enProceso = or.filter(o=>o.estado==='en_proceso').length;
+  const pend = or.filter(o=>o.estado==='pendiente').length;
+  const recent = [...or].reverse().slice(0,4);
+
+  document.getElementById('content').innerHTML = `
+    <div class="stats-grid">
+      <div class="stat-card" style="--card-color:var(--accent)">
+        <div class="stat-label">Clientes</div><div class="stat-value">${cl.length}</div><div class="stat-sub">registrados</div>
+      </div>
+      <div class="stat-card" style="--card-color:var(--blue)">
+        <div class="stat-label">Vehículos</div><div class="stat-value">${ve.length}</div><div class="stat-sub">en base</div>
+      </div>
+      <div class="stat-card" style="--card-color:var(--yellow)">
+        <div class="stat-label">En Proceso</div><div class="stat-value">${enProceso}</div><div class="stat-sub">${pend} pendientes</div>
+      </div>
+      <div class="stat-card" style="--card-color:var(--green)">
+        <div class="stat-label">Cobrado</div>
+        <div class="stat-value" style="font-size:${cobrado>999999?'18px':'22px'}">$${fmoney(cobrado)}</div>
+        <div class="stat-sub">total pagado</div>
+      </div>
+    </div>
+    <div class="section-header">
+      <div class="section-title">ÚLTIMAS ÓRDENES</div>
+      <button class="btn btn-ghost btn-sm" onclick="showPage('ordenes')">Ver todas</button>
+    </div>
+    ${recent.length ? recent.map(o=>{
+      const v=ve.find(x=>x.id===o.vehiculoId), c=cl.find(x=>x.id===o.clienteId);
+      return `<div class="card">
+        <div class="card-accent" style="background:${eColor(o.estado)}"></div>
+        <div style="padding-left:10px">
+          <div class="card-header">
+            <div><div class="card-title">${v?v.patente:'—'} ${v?'· '+v.marca+' '+v.modelo:''}</div>
+            <div class="card-sub">${c?c.nombre:'—'}</div></div>
+            ${eBadge(o.estado)}
+          </div>
+          <div class="card-row" style="font-size:12px;color:var(--text3)">${o.descripcion.substring(0,65)}${o.descripcion.length>65?'…':''}</div>
+          <div class="card-row"><span class="mono">${o.fecha}</span>${o.km?`<span style="margin-left:auto;color:var(--text3);font-size:11px">${o.km} km</span>`:''}</div>
+        </div>
+      </div>`;
+    }).join('') : `<div class="empty-state"><div class="ei">🔧</div><p>Sin órdenes todavía</p></div>`}
+  `;
+}
+
+// ===================== CLIENTES =====================
+let cSearch='';
+function renderClientes() { addFab('openClienteModal()'); _listClientes(); }
+function _listClientes() {
+  const cl=DATA.clientes, ve=DATA.vehiculos, or=DATA.ordenes;
+  const f=cl.filter(c=>!cSearch||c.nombre.toLowerCase().includes(cSearch.toLowerCase())||(c.telefono||'').includes(cSearch));
+  document.getElementById('content').innerHTML=`
+    <div class="search-wrap"><span class="search-icon">🔍</span>
+      <input type="search" placeholder="Buscar nombre o teléfono..." value="${cSearch}" oninput="cSearch=this.value;_listClientes()">
+    </div>
+    ${f.length?f.map(c=>{
+      const nv=ve.filter(v=>v.clienteId===c.id).length, no=or.filter(o=>o.clienteId===c.id).length;
+      return `<div class="card">
+        <div class="card-header">
+          <div>
+            <div class="card-title">${c.nombre}</div>
+            ${c.telefono?`<div class="card-row">📞 <a href="tel:${c.telefono}" style="color:var(--blue);text-decoration:none">${c.telefono}</a></div>`:''}
+            ${c.email?`<div class="card-row" style="font-size:12px;color:var(--text3)">✉️ ${c.email}</div>`:''}
+          </div>
+          <div style="display:flex;flex-direction:column;gap:4px;align-items:flex-end">
+            <span class="badge badge-blue">${nv} auto${nv!==1?'s':''}</span>
+            <span class="badge badge-gray">${no} orden${no!==1?'es':''}</span>
+          </div>
+        </div>
+        ${c.notas?`<div class="card-row" style="font-size:12px;color:var(--text3);font-style:italic">"${c.notas}"</div>`:''}
+        <div class="card-actions">
+          <button class="btn btn-ghost btn-sm" style="flex:1" onclick="openClienteModal(${c.id})">✏️ Editar</button>
+          <button class="btn btn-danger btn-sm" onclick="delCliente(${c.id})">🗑</button>
+        </div>
+      </div>`;
+    }).join(''):`<div class="empty-state"><div class="ei">👤</div><p>No hay clientes.<br>Tocá + para agregar uno.</p></div>`}
+  `;
+}
+
+function openClienteModal(id) {
+  const c=id?DATA.clientes.find(x=>x.id===id):null;
+  openModal(c?'EDITAR CLIENTE':'NUEVO CLIENTE',`
+    <div class="form-group"><label class="form-label">Nombre completo *</label>
+      <input class="form-input" id="f-nombre" value="${c?.nombre||''}" placeholder="Juan Pérez" autocomplete="name"></div>
+    <div class="form-group"><label class="form-label">Teléfono</label>
+      <input class="form-input" id="f-tel" type="tel" value="${c?.telefono||''}" placeholder="11-1234-5678" autocomplete="tel"></div>
+    <div class="form-group"><label class="form-label">Email</label>
+      <input class="form-input" id="f-email" type="email" value="${c?.email||''}" placeholder="cliente@email.com" autocomplete="email"></div>
+    <div class="form-group"><label class="form-label">Notas</label>
+      <textarea class="form-textarea" id="f-notas" placeholder="Observaciones...">${c?.notas||''}</textarea></div>`,
+    `<button class="btn btn-ghost" onclick="closeModal()">Cancelar</button>
+     <button class="btn btn-primary" onclick="saveCliente(${id||'null'})">Guardar</button>`
+  );
+}
+function saveCliente(id) {
+  const nombre=(document.getElementById('f-nombre').value||'').trim();
+  if(!nombre){alert('El nombre es obligatorio');return;}
+  const obj={nombre, telefono:document.getElementById('f-tel').value.trim(), email:document.getElementById('f-email').value.trim(), notas:document.getElementById('f-notas').value.trim()};
+  if(id){const i=DATA.clientes.findIndex(c=>c.id===id);DATA.clientes[i]={...DATA.clientes[i],...obj};toast('✅ Cliente actualizado');}
+  else{DATA.clientes.push({id:nextId('clientes'),...obj});toast('✅ Cliente agregado');}
+  closeModal(); scheduleSave(); _listClientes();
+}
+function delCliente(id) {
+  if(!confirm('¿Eliminar este cliente?'))return;
+  DATA.clientes=DATA.clientes.filter(c=>c.id!==id);
+  toast('🗑 Cliente eliminado'); scheduleSave(); _listClientes();
+}
+
+// ===================== VEHÍCULOS =====================
+let vSearch='';
+function renderVehiculos() { addFab('openVehiculoModal()'); _listVehiculos(); }
+function _listVehiculos() {
+  const ve=DATA.vehiculos, cl=DATA.clientes;
+  const f=ve.filter(v=>{
+    const c=cl.find(x=>x.id===v.clienteId), s=vSearch.toLowerCase();
+    return !s||v.patente.toLowerCase().includes(s)||v.marca.toLowerCase().includes(s)||v.modelo.toLowerCase().includes(s)||(c&&c.nombre.toLowerCase().includes(s));
+  });
+  document.getElementById('content').innerHTML=`
+    <div class="search-wrap"><span class="search-icon">🔍</span>
+      <input type="search" placeholder="Patente, marca, modelo o cliente..." value="${vSearch}" oninput="vSearch=this.value;_listVehiculos()">
+    </div>
+    ${f.length?f.map(v=>{
+      const c=cl.find(x=>x.id===v.clienteId);
+      return `<div class="card">
+        <div class="card-header">
+          <div><div class="card-title mono" style="font-size:18px;letter-spacing:3px">${v.patente}</div>
+          <div class="card-sub">${v.marca} ${v.modelo}${v.año?' · '+v.año:''}</div></div>
+          ${v.color?`<span class="badge badge-gray">${v.color}</span>`:''}
+        </div>
+        <div class="card-row">👤 ${c?c.nombre:'<span style="color:var(--text3)">Sin propietario</span>'}</div>
+        ${v.km?`<div class="card-row">🔢 <span class="mono">${parseInt(v.km).toLocaleString('es-AR')} km</span></div>`:''}
+        ${v.notas?`<div class="card-row" style="font-size:12px;color:var(--text3);font-style:italic">"${v.notas}"</div>`:''}
+        <div class="card-actions">
+          <button class="btn btn-ghost btn-sm" style="flex:1" onclick="openVehiculoModal(${v.id})">✏️ Editar</button>
+          <button class="btn btn-danger btn-sm" onclick="delVehiculo(${v.id})">🗑</button>
+        </div>
+      </div>`;
+    }).join(''):`<div class="empty-state"><div class="ei">🚗</div><p>No hay vehículos.<br>Tocá + para agregar uno.</p></div>`}
+  `;
+}
+function openVehiculoModal(id) {
+  const v=id?DATA.vehiculos.find(x=>x.id===id):null;
+  const cOpts=DATA.clientes.map(c=>`<option value="${c.id}" ${v?.clienteId===c.id?'selected':''}>${c.nombre}</option>`).join('');
+  openModal(v?'EDITAR VEHÍCULO':'NUEVO VEHÍCULO',`
+    <div class="form-group"><label class="form-label">Propietario</label>
+      <select class="form-select" id="f-cid"><option value="">Seleccionar...</option>${cOpts}</select></div>
+    <div class="form-group"><label class="form-label">Patente *</label>
+      <input class="form-input mono" id="f-pat" value="${v?.patente||''}" placeholder="AB123CD" style="text-transform:uppercase;letter-spacing:3px"></div>
+    <div class="form-row">
+      <div class="form-group"><label class="form-label">Marca</label><input class="form-input" id="f-marca" value="${v?.marca||''}" placeholder="Ford"></div>
+      <div class="form-group"><label class="form-label">Modelo</label><input class="form-input" id="f-modelo" value="${v?.modelo||''}" placeholder="Focus"></div>
+    </div>
+    <div class="form-row">
+      <div class="form-group"><label class="form-label">Año</label><input class="form-input" id="f-año" type="number" inputmode="numeric" value="${v?.año||''}" placeholder="2020"></div>
+      <div class="form-group"><label class="form-label">Color</label><input class="form-input" id="f-color" value="${v?.color||''}" placeholder="Blanco"></div>
+    </div>
+    <div class="form-group"><label class="form-label">KM actuales</label>
+      <input class="form-input" id="f-km" type="number" inputmode="numeric" value="${v?.km||''}" placeholder="85000"></div>
+    <div class="form-group"><label class="form-label">Notas</label>
+      <textarea class="form-textarea" id="f-notas" placeholder="Observaciones...">${v?.notas||''}</textarea></div>`,
+    `<button class="btn btn-ghost" onclick="closeModal()">Cancelar</button>
+     <button class="btn btn-primary" onclick="saveVehiculo(${id||'null'})">Guardar</button>`
+  );
+}
+function saveVehiculo(id) {
+  const pat=(document.getElementById('f-pat').value||'').trim().toUpperCase();
+  if(!pat){alert('La patente es obligatoria');return;}
+  const obj={clienteId:parseInt(document.getElementById('f-cid').value)||null, patente:pat, marca:document.getElementById('f-marca').value.trim(), modelo:document.getElementById('f-modelo').value.trim(), año:parseInt(document.getElementById('f-año').value)||null, color:document.getElementById('f-color').value.trim(), km:document.getElementById('f-km').value.trim(), notas:document.getElementById('f-notas').value.trim()};
+  if(id){const i=DATA.vehiculos.findIndex(v=>v.id===id);DATA.vehiculos[i]={...DATA.vehiculos[i],...obj};toast('✅ Vehículo actualizado');}
+  else{DATA.vehiculos.push({id:nextId('vehiculos'),...obj});toast('✅ Vehículo agregado');}
+  closeModal(); scheduleSave(); _listVehiculos();
+}
+function delVehiculo(id) {
+  if(!confirm('¿Eliminar este vehículo?'))return;
+  DATA.vehiculos=DATA.vehiculos.filter(v=>v.id!==id);
+  toast('🗑 Vehículo eliminado'); scheduleSave(); _listVehiculos();
+}
+
+// ===================== ÓRDENES =====================
+let oSearch='', oFiltro='todas';
+function renderOrdenes() { addFab('openOrdenModal()'); _listOrdenes(); }
+function _listOrdenes() {
+  const or=DATA.ordenes, ve=DATA.vehiculos, cl=DATA.clientes;
+  const f=or.filter(o=>{
+    const v=ve.find(x=>x.id===o.vehiculoId), c=cl.find(x=>x.id===o.clienteId), s=oSearch.toLowerCase();
+    return (!s||o.descripcion.toLowerCase().includes(s)||(v&&v.patente.toLowerCase().includes(s))||(c&&c.nombre.toLowerCase().includes(s)))
+      &&(oFiltro==='todas'||o.estado===oFiltro);
+  }).reverse();
+  document.getElementById('content').innerHTML=`
+    <div class="search-wrap"><span class="search-icon">🔍</span>
+      <input type="search" placeholder="Buscar órdenes..." value="${oSearch}" oninput="oSearch=this.value;_listOrdenes()">
+    </div>
+    <div class="filter-row">
+      ${['todas','pendiente','en_proceso','completada'].map(f=>`
+        <div class="filter-chip ${oFiltro===f?'active':''}" onclick="oFiltro='${f}';_listOrdenes()">
+          ${f==='todas'?'Todas':eLabel(f)}</div>`).join('')}
+    </div>
+    ${f.length?f.map(o=>{
+      const v=ve.find(x=>x.id===o.vehiculoId), c=cl.find(x=>x.id===o.clienteId);
+      return `<div class="card">
+        <div class="card-accent" style="background:${eColor(o.estado)}"></div>
+        <div style="padding-left:10px">
+          <div class="card-header">
+            <div><div class="card-title">${v?v.patente:'—'}${v?' · '+v.marca+' '+v.modelo:''}</div>
+            <div class="card-sub">${c?c.nombre:'—'}</div></div>
+            ${eBadge(o.estado)}
+          </div>
+          <div class="card-row" style="font-size:13px">${o.descripcion.substring(0,70)}${o.descripcion.length>70?'…':''}</div>
+          <div class="card-row"><span class="mono">${o.fecha}</span>${o.km?`<span style="margin-left:auto;color:var(--text3);font-size:11px">${o.km} km</span>`:''}</div>
+          ${o.observaciones?`<div class="card-row" style="font-size:12px;color:var(--text3);font-style:italic">"${o.observaciones}"</div>`:''}
+          <div class="card-actions">
+            <button class="btn btn-ghost btn-sm" style="flex:1" onclick="openOrdenModal(${o.id})">✏️ Editar</button>
+            <button class="btn btn-danger btn-sm" onclick="delOrden(${o.id})">🗑</button>
+          </div>
+        </div>
+      </div>`;
+    }).join(''):`<div class="empty-state"><div class="ei">🔧</div><p>No hay órdenes.<br>Tocá + para crear una.</p></div>`}
+  `;
+}
+function openOrdenModal(id) {
+  const o=id?DATA.ordenes.find(x=>x.id===id):null;
+  const cOpts=DATA.clientes.map(c=>`<option value="${c.id}" ${o?.clienteId===c.id?'selected':''}>${c.nombre}</option>`).join('');
+  const vOpts=DATA.vehiculos.map(v=>`<option value="${v.id}" ${o?.vehiculoId===v.id?'selected':''}>${v.patente} — ${v.marca} ${v.modelo}</option>`).join('');
+  openModal(o?'EDITAR ORDEN':'NUEVA ORDEN',`
+    <div class="form-group"><label class="form-label">Cliente</label>
+      <select class="form-select" id="f-cid"><option value="">Seleccionar...</option>${cOpts}</select></div>
+    <div class="form-group"><label class="form-label">Vehículo</label>
+      <select class="form-select" id="f-vid"><option value="">Seleccionar...</option>${vOpts}</select></div>
+    <div class="form-row">
+      <div class="form-group"><label class="form-label">Fecha</label>
+        <input class="form-input" id="f-fecha" type="date" value="${o?.fecha||new Date().toISOString().split('T')[0]}"></div>
+      <div class="form-group"><label class="form-label">KM</label>
+        <input class="form-input" id="f-km" type="number" inputmode="numeric" value="${o?.km||''}" placeholder="87000"></div>
+    </div>
+    <div class="form-group"><label class="form-label">Estado</label>
+      <select class="form-select" id="f-estado">
+        <option value="pendiente" ${o?.estado==='pendiente'?'selected':''}>⏳ Pendiente</option>
+        <option value="en_proceso" ${o?.estado==='en_proceso'?'selected':''}>⚙️ En proceso</option>
+        <option value="completada" ${o?.estado==='completada'?'selected':''}>✅ Completada</option>
+      </select></div>
+    <div class="form-group"><label class="form-label">Descripción *</label>
+      <textarea class="form-textarea" id="f-desc" style="min-height:90px" placeholder="Detalle del trabajo...">${o?.descripcion||''}</textarea></div>
+    <div class="form-group"><label class="form-label">Observaciones internas</label>
+      <textarea class="form-textarea" id="f-obs" placeholder="Notas para el taller...">${o?.observaciones||''}</textarea></div>`,
+    `<button class="btn btn-ghost" onclick="closeModal()">Cancelar</button>
+     <button class="btn btn-primary" onclick="saveOrden(${id||'null'})">Guardar</button>`
+  );
+}
+function saveOrden(id) {
+  const desc=(document.getElementById('f-desc').value||'').trim();
+  if(!desc){alert('La descripción es obligatoria');return;}
+  const obj={clienteId:parseInt(document.getElementById('f-cid').value)||null, vehiculoId:parseInt(document.getElementById('f-vid').value)||null, fecha:document.getElementById('f-fecha').value, km:document.getElementById('f-km').value.trim(), estado:document.getElementById('f-estado').value, descripcion:desc, observaciones:document.getElementById('f-obs').value.trim()};
+  if(id){const i=DATA.ordenes.findIndex(o=>o.id===id);DATA.ordenes[i]={...DATA.ordenes[i],...obj};toast('✅ Orden actualizada');}
+  else{DATA.ordenes.push({id:nextId('ordenes'),...obj});toast('✅ Orden creada');}
+  closeModal(); scheduleSave(); _listOrdenes();
+}
+function delOrden(id) {
+  if(!confirm('¿Eliminar esta orden?'))return;
+  DATA.ordenes=DATA.ordenes.filter(o=>o.id!==id);
+  toast('🗑 Orden eliminada'); scheduleSave(); _listOrdenes();
+}
+
+// ===================== PRESUPUESTOS =====================
+let pSearch='', mItems=[];
+function renderPresupuestos() { addFab('openPresupModal()'); _listPresup(); }
+function _listPresup() {
+  const pr=DATA.presupuestos, cl=DATA.clientes;
+  const f=pr.filter(p=>{
+    const c=cl.find(x=>x.id===p.clienteId);
+    return !pSearch||p.numero.toLowerCase().includes(pSearch.toLowerCase())||(c&&c.nombre.toLowerCase().includes(pSearch.toLowerCase()));
+  }).reverse();
+  document.getElementById('content').innerHTML=`
+    <div class="search-wrap"><span class="search-icon">🔍</span>
+      <input type="search" placeholder="Número o cliente..." value="${pSearch}" oninput="pSearch=this.value;_listPresup()">
+    </div>
+    ${f.length?f.map(p=>{
+      const c=cl.find(x=>x.id===p.clienteId), total=p.items.reduce((s,i)=>s+i.qty*i.precio,0);
+      return `<div class="card">
+        <div class="card-header">
+          <div><div class="card-title mono" style="font-size:15px;letter-spacing:1px">${p.numero}</div>
+          <div class="card-sub">${c?c.nombre:'—'} · ${p.fecha}</div></div>
+          ${pBadge(p.estado)}
+        </div>
+        <div class="card-row" style="font-size:12px;color:var(--text3)">${p.items.length} ítem${p.items.length!==1?'s':''}</div>
+        <div style="font-family:'Bebas Neue',sans-serif;font-size:26px;color:var(--accent);letter-spacing:1px;margin-top:4px">$${fmoney(total)}</div>
+        <div class="card-actions">
+          <button class="btn btn-ghost btn-sm" onclick="printPresup(${p.id})">🖨️</button>
+          <button class="btn btn-ghost btn-sm" style="flex:1" onclick="openPresupModal(${p.id})">✏️ Editar</button>
+          <button class="btn btn-danger btn-sm" onclick="delPresup(${p.id})">🗑</button>
+        </div>
+      </div>`;
+    }).join(''):`<div class="empty-state"><div class="ei">📄</div><p>No hay presupuestos.<br>Tocá + para crear uno.</p></div>`}
+  `;
+}
+function renderMItems() {
+  const c=document.getElementById('items-container'); if(!c)return;
+  c.innerHTML=mItems.map((item,i)=>`
+    <div class="pitem">
+      <button class="pitem-del" onclick="removeItem(${i})">✕</button>
+      <input class="form-input" style="margin-bottom:8px" value="${item.desc}" oninput="mItems[${i}].desc=this.value" placeholder="Descripción del ítem...">
+      <div class="pitem-row">
+        <div><div class="form-label">CANT.</div>
+          <input class="form-input" type="number" inputmode="decimal" value="${item.qty}" oninput="mItems[${i}].qty=parseFloat(this.value)||0;updTotal()" min="0" step="0.01"></div>
+        <div><div class="form-label">PRECIO $</div>
+          <input class="form-input" type="number" inputmode="numeric" value="${item.precio}" oninput="mItems[${i}].precio=parseFloat(this.value)||0;updTotal()" min="0"></div>
+      </div>
+    </div>`).join('')+`
+    <button class="add-item-btn" onclick="addItem()">+ Agregar ítem</button>
+    <div class="presup-total-box">
+      <div class="presup-total-label">Total</div>
+      <div class="presup-total-val" id="m-total">$${fmoney(calcTotal())}</div>
+    </div>`;
+}
+function addItem(){mItems.push({desc:'',qty:1,precio:0});renderMItems();}
+function removeItem(i){mItems.splice(i,1);renderMItems();}
+function updTotal(){const e=document.getElementById('m-total');if(e)e.textContent='$'+fmoney(calcTotal());}
+function calcTotal(){return mItems.reduce((s,i)=>s+i.qty*i.precio,0);}
+
+function openPresupModal(id) {
+  const p=id?DATA.presupuestos.find(x=>x.id===id):null;
+  mItems=p?JSON.parse(JSON.stringify(p.items)):[{desc:'Mano de obra',qty:1,precio:0}];
+  const nextNum='P-'+String(DATA.nextId?.presupuestos||1).padStart(4,'0');
+  const cOpts=DATA.clientes.map(c=>`<option value="${c.id}" ${p?.clienteId===c.id?'selected':''}>${c.nombre}</option>`).join('');
+  const oOpts=DATA.ordenes.map(o=>`<option value="${o.id}" ${p?.ordenId===o.id?'selected':''}>OT#${o.id} — ${o.descripcion.substring(0,28)}</option>`).join('');
+  openModal(p?'EDITAR PRESUPUESTO':'NUEVO PRESUPUESTO',`
+    <div class="form-row">
+      <div class="form-group"><label class="form-label">Número</label>
+        <input class="form-input mono" id="f-num" value="${p?.numero||nextNum}"></div>
+      <div class="form-group"><label class="form-label">Fecha</label>
+        <input class="form-input" id="f-fecha" type="date" value="${p?.fecha||new Date().toISOString().split('T')[0]}"></div>
+    </div>
+    <div class="form-group"><label class="form-label">Cliente</label>
+      <select class="form-select" id="f-cid"><option value="">Seleccionar...</option>${cOpts}</select></div>
+    <div class="form-group"><label class="form-label">Orden de trabajo</label>
+      <select class="form-select" id="f-oid"><option value="">Ninguna</option>${oOpts}</select></div>
+    <div class="form-row">
+      <div class="form-group"><label class="form-label">Estado</label>
+        <select class="form-select" id="f-estado">
+          <option value="pendiente" ${p?.estado==='pendiente'?'selected':''}>💳 Pendiente</option>
+          <option value="pagado" ${p?.estado==='pagado'?'selected':''}>✅ Pagado</option>
+          <option value="cancelado" ${p?.estado==='cancelado'?'selected':''}>❌ Cancelado</option>
+        </select></div>
+      <div class="form-group"><label class="form-label">Notas</label>
+        <input class="form-input" id="f-notas" value="${p?.notas||''}" placeholder="Opcional"></div>
+    </div>
+    <div style="margin-top:4px"><div class="form-label" style="margin-bottom:10px">ÍTEMS</div>
+      <div id="items-container"></div></div>`,
+    `<button class="btn btn-ghost" onclick="closeModal()">Cancelar</button>
+     <button class="btn btn-primary" onclick="savePresup(${id||'null'})">Guardar</button>`
+  );
+  renderMItems();
+}
+function savePresup(id) {
+  const num=(document.getElementById('f-num').value||'').trim();
+  if(!num){alert('El número es obligatorio');return;}
+  const obj={numero:num, fecha:document.getElementById('f-fecha').value, clienteId:parseInt(document.getElementById('f-cid').value)||null, ordenId:parseInt(document.getElementById('f-oid').value)||null, estado:document.getElementById('f-estado').value, items:mItems.filter(i=>i.desc.trim()), notas:document.getElementById('f-notas').value.trim()};
+  if(id){const i=DATA.presupuestos.findIndex(p=>p.id===id);DATA.presupuestos[i]={...DATA.presupuestos[i],...obj};toast('✅ Presupuesto actualizado');}
+  else{DATA.presupuestos.push({id:nextId('presupuestos'),...obj});toast('✅ Presupuesto creado');}
+  closeModal(); scheduleSave(); _listPresup();
+}
+function delPresup(id) {
+  if(!confirm('¿Eliminar este presupuesto?'))return;
+  DATA.presupuestos=DATA.presupuestos.filter(p=>p.id!==id);
+  toast('🗑 Presupuesto eliminado'); scheduleSave(); _listPresup();
+}
+function printPresup(id) {
+  const p=DATA.presupuestos.find(x=>x.id===id); if(!p)return;
+  const c=DATA.clientes.find(x=>x.id===p.clienteId), total=p.items.reduce((s,i)=>s+i.qty*i.precio,0);
+  const w=window.open('','_blank');
+  w.document.write(`<!DOCTYPE html><html><head><meta charset="UTF-8"><title>Presupuesto ${p.numero}</title>
+  <style>body{font-family:Arial,sans-serif;margin:40px;color:#111}h1{font-size:28px;margin:0;color:#e8531a;letter-spacing:2px}.sub{color:#888;font-size:12px;letter-spacing:2px;margin-bottom:30px}.row{display:flex;justify-content:space-between;margin-bottom:6px;font-size:13px}table{width:100%;border-collapse:collapse;margin-top:24px}th{background:#f4f4f4;padding:8px 12px;text-align:left;font-size:11px;letter-spacing:1px;text-transform:uppercase}td{padding:10px 12px;border-bottom:1px solid #eee;font-size:13px}.tr td{font-weight:bold;font-size:15px;border-top:2px solid #111;background:#fafafa}.footer{margin-top:40px;font-size:11px;color:#888;border-top:1px solid #eee;padding-top:12px}</style>
+  </head><body><h1>PRESUPUESTO</h1><div class="sub">LUBRICENTRO SB</div>
+  <div class="row"><span><strong>N°:</strong> ${p.numero}</span><span><strong>Fecha:</strong> ${p.fecha}</span></div>
+  <div class="row"><span><strong>Cliente:</strong> ${c?c.nombre:'—'}</span><span><strong>Tel:</strong> ${c?c.telefono||'—':'—'}</span></div>
+  ${p.notas?`<div class="row"><span><strong>Notas:</strong> ${p.notas}</span></div>`:''}
+  <table><thead><tr><th>Descripción</th><th>Cant.</th><th>Precio Unit.</th><th>Subtotal</th></tr></thead>
+  <tbody>${p.items.map(i=>`<tr><td>${i.desc}</td><td>${i.qty}</td><td>$${fmoney(i.precio)}</td><td>$${fmoney(i.qty*i.precio)}</td></tr>`).join('')}
+  <tr class="tr"><td colspan="3">TOTAL</td><td>$${fmoney(total)}</td></tr></tbody></table>
+  <div class="footer">Presupuesto generado por Lubricentro SB · Válido por 7 días</div></body></html>`);
+  w.document.close(); w.print();
+}
+
+// ===================== HELPERS =====================
+function fmoney(n){return Number(n).toLocaleString('es-AR');}
+function eColor(e){return{pendiente:'var(--yellow)',en_proceso:'var(--blue)',completada:'var(--green)'}[e]||'var(--border)';}
+function eBadge(e){const m={pendiente:['badge-yellow','⏳ Pendiente'],en_proceso:['badge-blue','⚙️ En proceso'],completada:['badge-green','✅ Lista']};const[cls,label]=m[e]||['badge-gray',e];return`<span class="badge ${cls}">${label}</span>`;}
+function eLabel(e){return{pendiente:'Pendiente',en_proceso:'En proceso',completada:'Completada'}[e]||e;}
+function pBadge(e){const m={pendiente:['badge-yellow','💳 Pendiente'],pagado:['badge-green','✅ Pagado'],cancelado:['badge-red','❌ Cancelado']};const[cls,label]=m[e]||['badge-gray',e];return`<span class="badge ${cls}">${label}</span>`;}
+
+// ===================== INIT =====================
+loadFromSheets().then(() => showPage('dashboard'));
+</script>
+</body>
+</html>
