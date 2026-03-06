@@ -197,6 +197,44 @@
   }
   @keyframes fadeUp { from{opacity:0;transform:translateX(-50%) translateY(8px)} to{opacity:1;transform:translateX(-50%) translateY(0)} }
 
+  /* FICHA CLIENTE */
+  .ficha-overlay {
+    display: none; position: fixed; inset: 0; background: var(--bg);
+    z-index: 150; flex-direction: column; animation: slideInRight 0.25s ease;
+  }
+  .ficha-overlay.open { display: flex; }
+  @keyframes slideInRight { from { transform: translateX(100%); } to { transform: translateX(0); } }
+
+  .ficha-topbar {
+    height: var(--top-h); background: var(--surface); border-bottom: 1px solid var(--border);
+    display: flex; align-items: center; gap: 12px; padding: 0 16px; flex-shrink: 0;
+  }
+  .ficha-back {
+    background: var(--surface2); border: 1px solid var(--border); border-radius: 10px;
+    color: var(--text2); font-size: 18px; width: 36px; height: 36px;
+    display: flex; align-items: center; justify-content: center; cursor: pointer; flex-shrink: 0;
+  }
+  .ficha-nombre { font-family: 'Bebas Neue', sans-serif; font-size: 20px; letter-spacing: 2px; color: var(--text); }
+  .ficha-content { flex: 1; overflow-y: auto; -webkit-overflow-scrolling: touch; padding: 14px; padding-bottom: 30px; }
+
+  .ficha-section-title {
+    font-family: 'Bebas Neue', sans-serif; font-size: 14px; letter-spacing: 2px;
+    color: var(--text3); margin: 18px 0 10px; display: flex; align-items: center; gap: 8px;
+  }
+  .ficha-section-title::after {
+    content: ''; flex: 1; height: 1px; background: var(--border);
+  }
+
+  .ficha-resumen {
+    display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; margin-bottom: 4px;
+  }
+  .ficha-stat {
+    background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius);
+    padding: 10px 12px; text-align: center;
+  }
+  .ficha-stat-val { font-family: 'Bebas Neue', sans-serif; font-size: 22px; color: var(--accent); }
+  .ficha-stat-label { font-size: 9px; letter-spacing: 1px; text-transform: uppercase; color: var(--text3); margin-top: 2px; }
+
   ::-webkit-scrollbar { width: 3px; }
   ::-webkit-scrollbar-thumb { background: var(--surface3); border-radius: 2px; }
 
@@ -473,7 +511,8 @@ function _listClientes() {
         </div>
         ${c.notas?`<div class="card-row" style="font-size:12px;color:var(--text3);font-style:italic">"${c.notas}"</div>`:''}
         <div class="card-actions">
-          <button class="btn btn-ghost btn-sm" style="flex:1" onclick="openClienteModal(${c.id})">✏️ Editar</button>
+          <button class="btn btn-primary btn-sm" style="flex:2" onclick="verFicha(${c.id})">📋 Ver ficha</button>
+          <button class="btn btn-ghost btn-sm" onclick="openClienteModal(${c.id})">✏️</button>
           <button class="btn btn-danger btn-sm" onclick="delCliente(${c.id})">🗑</button>
         </div>
       </div>`;
@@ -782,6 +821,125 @@ function printPresup(id) {
   <tr class="tr"><td colspan="3">TOTAL</td><td>$${fmoney(total)}</td></tr></tbody></table>
   <div class="footer">Presupuesto generado por Lubricentro SB · Válido por 7 días</div></body></html>`);
   w.document.close(); w.print();
+}
+
+// ===================== FICHA CLIENTE =====================
+function verFicha(clienteId) {
+  const c = DATA.clientes.find(x => x.id === clienteId);
+  if (!c) return;
+
+  const vehiculos = DATA.vehiculos.filter(v => v.clienteId === clienteId);
+  const ordenes = DATA.ordenes.filter(o => o.clienteId === clienteId).reverse();
+  const presupuestos = DATA.presupuestos.filter(p => p.clienteId === clienteId).reverse();
+
+  const totalCobrado = presupuestos.filter(p => p.estado === 'pagado')
+    .reduce((s, p) => s + p.items.reduce((si, i) => si + i.qty * i.precio, 0), 0);
+
+  // Crear overlay si no existe
+  let overlay = document.getElementById('ficha-overlay');
+  if (!overlay) {
+    overlay = document.createElement('div');
+    overlay.className = 'ficha-overlay';
+    overlay.id = 'ficha-overlay';
+    document.body.appendChild(overlay);
+  }
+
+  overlay.innerHTML = `
+    <div class="ficha-topbar">
+      <button class="ficha-back" onclick="cerrarFicha()">←</button>
+      <div>
+        <div class="ficha-nombre">${c.nombre}</div>
+        <div style="font-size:10px;letter-spacing:1px;text-transform:uppercase;color:var(--text3)">Ficha completa</div>
+      </div>
+    </div>
+    <div class="ficha-content">
+
+      <!-- Info de contacto -->
+      <div class="card" style="margin-bottom:12px">
+        ${c.telefono ? `<div class="card-row">📞 <a href="tel:${c.telefono}" style="color:var(--blue);text-decoration:none;font-weight:500">${c.telefono}</a></div>` : ''}
+        ${c.email ? `<div class="card-row">✉️ <span style="color:var(--text2)">${c.email}</span></div>` : ''}
+        ${c.notas ? `<div class="card-row" style="font-size:12px;color:var(--text3);font-style:italic">"${c.notas}"</div>` : ''}
+        ${!c.telefono && !c.email && !c.notas ? `<div style="color:var(--text3);font-size:13px">Sin datos de contacto</div>` : ''}
+      </div>
+
+      <!-- Resumen -->
+      <div class="ficha-resumen">
+        <div class="ficha-stat">
+          <div class="ficha-stat-val">${vehiculos.length}</div>
+          <div class="ficha-stat-label">Autos</div>
+        </div>
+        <div class="ficha-stat">
+          <div class="ficha-stat-val">${ordenes.length}</div>
+          <div class="ficha-stat-label">Órdenes</div>
+        </div>
+        <div class="ficha-stat">
+          <div class="ficha-stat-val" style="font-size:${totalCobrado > 999999 ? '14px' : '18px'}">$${fmoney(totalCobrado)}</div>
+          <div class="ficha-stat-label">Cobrado</div>
+        </div>
+      </div>
+
+      <!-- Vehículos -->
+      <div class="ficha-section-title">🚗 Vehículos</div>
+      ${vehiculos.length ? vehiculos.map(v => `
+        <div class="card">
+          <div class="card-header">
+            <div>
+              <div class="card-title mono" style="letter-spacing:2px">${v.patente}</div>
+              <div class="card-sub">${v.marca} ${v.modelo}${v.año ? ' · ' + v.año : ''}</div>
+            </div>
+            ${v.color ? `<span class="badge badge-gray">${v.color}</span>` : ''}
+          </div>
+          ${v.km ? `<div class="card-row">🔢 <span class="mono">${parseInt(v.km).toLocaleString('es-AR')} km</span></div>` : ''}
+        </div>`).join('') : `<div style="color:var(--text3);font-size:13px;padding:8px 0">Sin vehículos registrados</div>`}
+
+      <!-- Órdenes de trabajo -->
+      <div class="ficha-section-title">🔧 Historial de órdenes</div>
+      ${ordenes.length ? ordenes.map(o => {
+        const v = DATA.vehiculos.find(x => x.id === o.vehiculoId);
+        return `<div class="card">
+          <div class="card-accent" style="background:${eColor(o.estado)}"></div>
+          <div style="padding-left:10px">
+            <div class="card-header">
+              <div>
+                <div class="card-title" style="font-size:13px">${v ? v.patente + ' · ' + v.marca + ' ' + v.modelo : '—'}</div>
+                <div class="card-sub">${o.fecha}${o.km ? ' · ' + o.km + ' km' : ''}</div>
+              </div>
+              ${eBadge(o.estado)}
+            </div>
+            <div class="card-row" style="font-size:13px">${o.descripcion}</div>
+            ${o.observaciones ? `<div class="card-row" style="font-size:12px;color:var(--text3);font-style:italic">"${o.observaciones}"</div>` : ''}
+          </div>
+        </div>`;
+      }).join('') : `<div style="color:var(--text3);font-size:13px;padding:8px 0">Sin órdenes registradas</div>`}
+
+      <!-- Presupuestos -->
+      <div class="ficha-section-title">📄 Historial de presupuestos</div>
+      ${presupuestos.length ? presupuestos.map(p => {
+        const total = p.items.reduce((s, i) => s + i.qty * i.precio, 0);
+        return `<div class="card">
+          <div class="card-header">
+            <div>
+              <div class="card-title mono">${p.numero}</div>
+              <div class="card-sub">${p.fecha} · ${p.items.length} ítem${p.items.length !== 1 ? 's' : ''}</div>
+            </div>
+            ${pBadge(p.estado)}
+          </div>
+          <div style="font-family:'Bebas Neue',sans-serif;font-size:22px;color:var(--accent);letter-spacing:1px;margin-top:4px">$${fmoney(total)}</div>
+          <div class="card-actions">
+            <button class="btn btn-ghost btn-sm" style="flex:1" onclick="printPresup(${p.id})">🖨️ Imprimir</button>
+          </div>
+        </div>`;
+      }).join('') : `<div style="color:var(--text3);font-size:13px;padding:8px 0">Sin presupuestos registrados</div>`}
+
+    </div>
+  `;
+
+  overlay.classList.add('open');
+}
+
+function cerrarFicha() {
+  const overlay = document.getElementById('ficha-overlay');
+  if (overlay) overlay.classList.remove('open');
 }
 
 // ===================== HELPERS =====================
